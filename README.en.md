@@ -1,6 +1,6 @@
 [Tiếng Việt](./README.md) | **English**
 
-# AI-Powered Personal Finance Automation Agent (n8n)
+# Personal finance automation agent (n8n)
 
 A 24/7 personal finance chat assistant that automates expense tracking, debt logging, and instant balance reporting, eliminating manual spreadsheet entry.
 
