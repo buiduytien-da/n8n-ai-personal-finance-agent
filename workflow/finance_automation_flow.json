@@ -1,0 +1,965 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -576,
+        -32
+      ],
+      "id": "90f9b7cd-f193-4d7d-a660-53dea95839ce",
+      "name": "When chat message received",
+      "webhookId": "c9c2cadf-8c5b-4200-934c-988365765ae0"
+    },
+    {
+      "parameters": {
+        "model": "deepseek/deepseek-r1",
+        "options": {
+          "maxTokens": 1000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        192
+      ],
+      "id": "0a9b368a-4c1b-4c2e-b15b-3bc6d63825d7",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "V8hnq6BRXo5pTz7e",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Bạn là bộ máy phân loại ý định tài chính (Financial Intent Classifier). \nHôm nay là: {{ $now.format('DD/MM/YYYY') }}\n\nNhiệm vụ: Phân tích input người dùng và trả về JSON duy nhất (KHÔNG MARKDOWN, KHÔNG GIẢI THÍCH).\n\n---\nPHÂN LOẠI 2 INTENT CHÍNH:\n\n1. INTENT: \"write\" (GHI CHÉP GIAO DỊCH)\n   - Dùng khi: User khẳng định vừa tiêu tiền, vay/trả nợ, hoặc NHẬN TIỀN.\n   - Output Format:\n     {\n       \"intent\": \"write\",\n       \"data\": {\n         \"ThoiGian\": \"DD/MM/YYYY\", // Mặc định hôm nay\n         \"Noi_Dung\": \"string\", \n         \"So_Tien\": number, \n         \"Loai\": \"Chi tiêu\" | \"Nợ\" | \"Thu nhập\",\n         \"Nguoi\": \"string\" // Null nếu không có tên\n       }\n     }\n   - QUY TẮC GÁN \"Loai\":\n     + \"Thu nhập\": Nhận lương, thưởng, ting ting.\n     + \"Nợ\": Vay tiền, trả nợ, sổ nợ.\n     + \"Chi tiêu\": Mua sắm, ăn uống, dịch vụ.\n\n2. INTENT: \"read\" (TRA CỨU/HỎI)\n   - Dùng khi: User đặt câu hỏi về dữ liệu cũ.\n   - Output Format:\n     {\n       \"intent\": \"read\",\n       \"sub_intent\": \"summary\" | \"history\",\n       \"category\": \"income\" | \"expense\" | \"debt\" | \"all\",\n       \"time_range\": \"today\" | \"yesterday\" | \"this_month\" | \"last_month\" | \"all_time\"\n     }\n\n   - PHÂN LOẠI \"sub_intent\" & \"category\" (QUY TẮC PHÂN LUỒNG):\n\n     a) \"summary\" (BÁO CÁO TỔNG QUAN & SỐ DƯ):\n        - Dùng khi user muốn: XEM SỐ DƯ, TỔNG KẾT TÌNH HÌNH, CHECK VÍ.\n        - Dấu hiệu: \"Tổng kết\", \"Chốt sổ\", \"Báo cáo\", \"Còn bao nhiêu\", \"Số dư\".\n        - QUY TẮC: \n             + Gặp từ khóa \"Tổng kết\" hoặc hỏi Số Dư -> Auto là \"summary\".\n             + Nếu sub_intent=\"summary\" -> category LUÔN LÀ \"all\" (Mở Dashboard).\n\n     b) \"history\" (CHI TIẾT & TỔNG TỪNG LOẠI):\n        - Dùng khi user hỏi cụ thể về: THU NHẬP, CHI TIÊU, NỢ (Bất kể hỏi liệt kê hay hỏi tổng số tiền của loại đó).\n        - QUY TẮC VÀNG: \n             + Hỏi \"Chi tiêu bao nhiêu\" hoặc \"Tiêu những gì\" -> history + expense.\n             + Hỏi \"Thu nhập bao nhiêu\" hoặc \"Nguồn thu nào\" -> history + income.\n             + Hỏi \"Nợ bao nhiêu\" hoặc \"Ai nợ\" -> history + debt.\n        \n        - Phân loại \"category\" (để Code lọc và tính tổng):\n             + \"income\": Mọi câu hỏi về Tiền về/Lương.\n             + \"expense\": Mọi câu hỏi về Tiền đi/Chi tiêu.\n             + \"debt\": Mọi câu hỏi về Nợ.\n             (KHÔNG CÓ \"all\").\n\n---\nLƯU Ý QUAN TRỌNG:\n1. JSON trần, không markdown.\n2. Logic Test:\n   - \"Tổng kết tháng này xem nào\" -> sub_intent: \"summary\", category: \"all\".\n   - \"Còn bao nhiêu tiền?\" -> sub_intent: \"summary\", category: \"all\".\n   - \"Tháng này tiêu hết bao nhiêu?\" -> sub_intent: \"history\", category: \"expense\".\n   - \"Nợ nần thế nào?\" -> sub_intent: \"history\", category: \"debt\".\n3. Tự suy luận time_range."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -384,
+        -32
+      ],
+      "id": "dcc4d6db-bd35-4731-a9b5-0e0c00f1e988",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d7f34946-51c2-48ae-be62-da143836f519",
+                    "leftValue": "={{ $json.data.Loai_Slug }}",
+                    "rightValue": "thu nhập",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "write",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "d8672c79-11fd-4e3a-bbe2-2a4c8520c10b"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "cc4e2f34-e81d-4a7d-95f6-1d79c6703667",
+                    "leftValue": "={{ $json.sub_intent }}",
+                    "rightValue": "history",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ae3621b4-801b-46cd-8553-0f394ec55e41",
+                    "leftValue": "={{ $json.sub_intent }}",
+                    "rightValue": "summary",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        80,
+        -64
+      ],
+      "id": "55db629e-6951-4033-9d3d-42dc7cd972f0",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Lấy nội dung từ node AI (Xử lý trường hợp input rỗng)\nconst rawContent = $input.first().json.text || $input.first().json.content || $input.first().json.output || \"\";\n\n// 2. Tẩy rửa Markdown (Quan trọng: AI hay kẹp ```json ở đầu cuối)\n// Xóa hết các ký tự ```json, ``` và khoảng trắng thừa\nconst cleanString = rawContent.replace(/```json|```/g, \"\").trim();\n\n// 3. Lọc lấy khối JSON\nconst jsonMatch = cleanString.match(/\\{[\\s\\S]*\\}/);\n\nif (jsonMatch) {\n  try {\n    let cleanData = JSON.parse(jsonMatch[0]);\n\n    // 4. Chuẩn hóa dữ liệu (Data Normalization)\n    // Giúp Node Switch phía sau đỡ bị lỗi do viết hoa/thường (VD: \"write\" vs \"Write\")\n    if (cleanData.intent) {\n        cleanData.intent = cleanData.intent.toString().toLowerCase().trim();\n    }\n\n    // Quan trọng cho nhánh Thu nhập: Chuẩn hóa loại giao dịch\n    if (cleanData.data && cleanData.data.Loai) {\n        // Đưa về lowercase để dễ so sánh: \"Thu nhập\" -> \"thu nhập\"\n        cleanData.data.Loai_Raw = cleanData.data.Loai; // Giữ bản gốc để hiển thị đẹp\n        cleanData.data.Loai_Slug = cleanData.data.Loai.toString().toLowerCase(); // Bản dùng để code check\n    }\n\n    // Trả về đúng chuẩn n8n\n    return { json: cleanData }; \n\n  } catch (error) {\n    // Nếu lỗi parse, trả về intent 'unknown' để workflow không chết hẳn (Crash)\n    return { \n        json: { \n            intent: \"error\", \n            error_msg: \"Lỗi cú pháp JSON từ AI: \" + error.message,\n            raw_text: rawContent\n        } \n    };\n  }\n} else {\n  // Không tìm thấy JSON -> Khả năng là AI chém gió linh tinh\n  return { \n      json: { \n          intent: \"chat_only\", \n          message: rawContent \n      } \n  };\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        -32
+      ],
+      "id": "73822fb0-ead4-4126-bfd9-1bab72b80d84",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "numberInputs": 4
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1440,
+        -64
+      ],
+      "id": "2f05d078-5620-431a-9287-e4ea4fe221fa",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cb0ae758-d12b-41a8-bff6-172317b423b9",
+              "name": "text",
+              "value": "Đã lưu chi tiêu thành công!",
+              "type": "string"
+            },
+            {
+              "id": "0803fa3e-a25e-4d37-9570-56e6eff76b6b",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1072,
+        -256
+      ],
+      "id": "56f1c9d7-31c2-408f-b657-cb2dc7344af2",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cb0ae758-d12b-41a8-bff6-172317b423b9",
+              "name": "text",
+              "value": "Đã lưu thu nhập thành công!",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1056,
+        -448
+      ],
+      "id": "55d6e213-6598-40bd-a193-7c2ecae7e884",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Chi tieu hàng tháng",
+          "cachedResultUrl": "[https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk](https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk)"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 510745476,
+          "mode": "list",
+          "cachedResultName": "Thu nhập",
+          "cachedResultUrl": "[https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=510745476](https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=510745476)"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Thoi Gian": "={{ $json.data.ThoiGian }}",
+            "So Tien": "={{ $json.data.So_Tien }}",
+            "Noi Dung": "={{ $json.data.Noi_Dung }}"
+          },
+          "matchingColumns": [
+            "Noi Dung"
+          ],
+          "schema": [
+            {
+              "id": "Thoi Gian",
+              "displayName": "Thoi Gian",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Noi Dung",
+              "displayName": "Noi Dung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "So Tien",
+              "displayName": "So Tien",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        336,
+        -448
+      ],
+      "id": "496f8dbb-8c74-4857-a1e9-a825a5126079",
+      "name": "Thu nhập",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "1PS8Wk6Z3cghumha",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Chi tieu hàng tháng",
+          "cachedResultUrl": "[https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk](https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk)"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "[https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0](https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0)"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ThoiGian": "={{ $json.data.ThoiGian }}",
+            "Noi Dung": "={{ $json.data.Noi_Dung }}",
+            "So Tien": "={{ $json.data.So_Tien }}",
+            "Loai": "={{ $json.data.Loai }}",
+            "Nguoi": "={{ $json.data.Nguoi }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ThoiGian",
+              "displayName": "ThoiGian",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Noi Dung",
+              "displayName": "Noi Dung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "So Tien",
+              "displayName": "So Tien",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Loai",
+              "displayName": "Loai",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Nguoi",
+              "displayName": "Nguoi",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        336,
+        -256
+      ],
+      "id": "7bbb9987-689b-488d-b198-e6d395794aca",
+      "name": "Chi tiêu",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "1PS8Wk6Z3cghumha",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Chi tieu hàng tháng",
+          "cachedResultUrl": "[https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk](https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk)"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 496789863,
+          "mode": "list",
+          "cachedResultName": "Tổng kết",
+          "cachedResultUrl": "[https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=496789863](https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=496789863)"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        336,
+        608
+      ],
+      "id": "d01f00ad-2d86-4753-a84d-6231cc23db25",
+      "name": "Summary",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "1PS8Wk6Z3cghumha",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n// Header\nlet summaryText = `**TỔNG KẾT VÍ TIỀN (${new Date().toLocaleDateString('vi-VN').slice(0, 5)})** 🗓️\\n\\n`;\n\nfor (const item of items) {\n  const json = item.json;\n\n  // 1. LẤY DỮ LIỆU (Logic mới cho trường hợp đã Tắt Header)\n  // Khi tắt Header, n8n thường trả về key là \"A\", \"B\" hoặc \"0\", \"1\"\n  let label = json['A'] || json['0'] || json['Column A'] || \"\";\n  let value = json['B'] || json['1'] || json['Column B'] || 0;\n\n  // Logic dự phòng: Nếu không bắt được A/B thì quét mảng\n  if (!label || !value) {\n      // Lọc bỏ biến row_number (thủ phạm gây lỗi 2, 3, 4)\n      const cleanKeys = Object.keys(json).filter(k => k !== 'row_number' && k !== 'id');\n      \n      for (const k of cleanKeys) {\n          const v = json[k];\n          // Nếu là chữ dài -> Label\n          if (typeof v === 'string' && v.length > 2 && isNaN(v)) label = v;\n          // Nếu là số (và không phải row index bé xíu) hoặc chuỗi số -> Tiền\n          if ((typeof v === 'number' && v > 100) || (typeof v === 'string' && !isNaN(v))) value = v;\n      }\n  }\n\n  // Bỏ qua nếu không tìm được label hoặc tiền\n  if (!label || value === 0 || value === \"\") continue;\n\n  // 2. Xử lý số tiền\n  const moneyRaw = parseInt(value.toString().replace(/\\D/g, '')) || 0;\n  // Bỏ qua nếu tiền = 0 hoặc quá nhỏ (lọc nhiễu)\n  if (moneyRaw < 100) continue; \n  \n  const moneyStr = new Intl.NumberFormat('vi-VN').format(moneyRaw);\n\n  // 3. Logic Icon & Label (Map theo từ khóa trong cột A)\n  let icon = \"🔹\"; \n  let displayLabel = label;\n  const l = label.toString().toLowerCase();\n  \n  if (l.includes(\"thu\")) { \n      icon = \"📈\"; \n      displayLabel = \"Thu vào\"; \n  } else if (l.includes(\"chi\") || l.includes(\"tiêu\")) { \n      icon = \"💸\"; \n      displayLabel = \"Bay màu\"; \n  } else if (l.includes(\"nợ\")) { \n      icon = \"⏳\"; \n      displayLabel = \"Đang nợ\"; \n  } else if (l.includes(\"dư\") || l.includes(\"tồn\") || l.includes(\"két\")) { \n      icon = moneyRaw >= 0 ? \"💎\" : \"🚩\"; \n      displayLabel = \"Két sắt còn\"; \n  }\n\n  // 4. Ghép dòng (Có \\n\\n để xuống dòng chắc chắn)\n  summaryText += `${icon} ${displayLabel}: **${moneyStr} đ**\\n\\n`;\n}\n\nsummaryText += \"💬 *Note: Nhớ check kỹ trước khi xuống tay tiêu nhé!*\";\n\nreturn {\n  json: {\n    text: summaryText \n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        608
+      ],
+      "id": "0ca22648-f339-4495-bf2d-a9f9ec2f6492",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Chi tieu hàng tháng",
+          "cachedResultUrl": "[https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk](https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk)"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Chi tiêu",
+          "cachedResultUrl": "[https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0](https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0)"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        544,
+        -64
+      ],
+      "id": "c68d7393-85da-4c86-92e6-e05450ac0d3a",
+      "name": "Google Sheets Chi Tieu",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "1PS8Wk6Z3cghumha",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Chi tieu hàng tháng",
+          "cachedResultUrl": "[https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk](https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk)"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 510745476,
+          "mode": "list",
+          "cachedResultName": "Thu nhập",
+          "cachedResultUrl": "[https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=510745476](https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=510745476)"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        544,
+        352
+      ],
+      "id": "0917512c-edef-4f56-9d61-124790568549",
+      "name": "Google Sheets Thu Nhap",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "1PS8Wk6Z3cghumha",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "expense",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "1d0e2a5b-4aa2-44d3-b565-268c143c9f55"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "2f03f90a-15cb-41b2-99ee-3e77e80f0283",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "debt",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "99369688-2425-4386-8803-014567ac1c3d",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "income",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        352,
+        128
+      ],
+      "id": "16c3a304-1915-4a1a-8449-80a971226444",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Chi tieu hàng tháng",
+          "cachedResultUrl": "[https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk](https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk)"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Chi tiêu",
+          "cachedResultUrl": "[https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0](https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0)"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        544,
+        144
+      ],
+      "id": "25b18a2d-0a97-44ca-ae93-57fa273caa7f",
+      "name": "Google Sheets Chi Tieu1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "1PS8Wk6Z3cghumha",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nlet totalExpense = 0;\nlet listText = \"\";\nlet count = 0;\n\nfor (const item of items) {\n  const row = item.json;\n\n  // 1. Lọc: Chỉ lấy dòng có Loại là \"Chi tiêu\"\n  // Dùng toLowerCase() để bắt được cả \"Chi tiêu\", \"chi tiêu\", \"CHI TIÊU\"\n  const loai = (row['Loai'] || \"\").toString().toLowerCase().trim();\n  if (!loai.includes('chi tiêu')) continue;\n\n  // 2. Lấy dữ liệu (Đúng tên cột trong mẫu ông gửi)\n  const date = row['ThoiGian'] || \"N/A\"; \n  const content = row['Noi Dung'] || \"Chi tiêu\";\n  \n  // Xử lý tiền: Đảm bảo là số nguyên\n  const rawMoney = row['So Tien'] || 0;\n  const money = parseInt(rawMoney.toString().replace(/\\D/g, '')) || 0;\n\n  if (money === 0) continue;\n\n  // 3. Cộng dồn\n  totalExpense += money;\n  count++;\n  \n  const moneyStr = new Intl.NumberFormat('vi-VN').format(money);\n  listText += `- ${date}: ${content} 💸 **${moneyStr} đ**\\n`;\n}\n\n// 4. Kết quả\nlet finalText = `💸 **DANH SÁCH CHI TIÊU** (${count} khoản)\\n`;\nfinalText += `--------------------------------\\n`;\n\nif (count === 0) {\n    finalText += \"Không tìm thấy khoản chi tiêu nào trong dữ liệu.\";\n} else {\n    finalText += listText;\n    finalText += `\\n🔴 **TỔNG CỘNG: ${new Intl.NumberFormat('vi-VN').format(totalExpense)} đ**`;\n}\n\nreturn { json: { text: finalText } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        -64
+      ],
+      "id": "b88002c4-e241-48dd-ae79-41f1d43db054",
+      "name": "Expense"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nlet totalDebt = 0;\nlet listText = \"\";\nlet count = 0;\n\nfor (const item of items) {\n  const row = item.json;\n\n  // 1. Lọc: Chỉ lấy dòng có Loại là \"Nợ\"\n  const loai = (row['Loai'] || \"\").toString().toLowerCase().trim();\n  // Lọc lấy chữ \"nợ\" (hoặc \"vay\" nếu ông có dùng từ này)\n  if (!loai.includes('nợ') && !loai.includes('vay')) continue;\n\n  // 2. Lấy dữ liệu\n  const date = row['ThoiGian'] || \"N/A\";\n  const content = row['Noi Dung'] || \"Khoản nợ\";\n  \n  // Lấy tên người (Quan trọng cho nhánh Nợ)\n  let person = row['Nguoi'] || \"\";\n  if (person) person = `(với ${person})`;\n\n  const rawMoney = row['So Tien'] || 0;\n  const money = parseInt(rawMoney.toString().replace(/\\D/g, '')) || 0;\n\n  if (money === 0) continue;\n\n  totalDebt += money;\n  count++;\n\n  const moneyStr = new Intl.NumberFormat('vi-VN').format(money);\n  \n  // Hiển thị: 13/12/2025: Mượn tiền (Ai đó) ⏳ 50.000 đ\n  listText += `- ${date}: ${content} ${person} ⏳ **${moneyStr} đ**\\n`;\n}\n\nlet finalText = `📝 **SỔ NỢ VAY - TRẢ** (${count} khoản)\\n`;\nfinalText += `--------------------------------\\n`;\n\nif (count === 0) {\n    finalText += \"Không tìm thấy khoản nợ nào.\";\n} else {\n    finalText += listText;\n    finalText += `\\n⚖️ **TỔNG GIÁ TRỊ: ${new Intl.NumberFormat('vi-VN').format(totalDebt)} đ**`;\n}\n\nreturn { json: { text: finalText } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        144
+      ],
+      "id": "18f075a3-ba4f-4bea-9814-7354ccfd22d1",
+      "name": "Debt"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nlet totalIncome = 0;\nlet listText = \"\";\nlet count = 0;\n\nfor (const item of items) {\n  const row = item.json;\n\n  // Sheet Thu Nhập không cần lọc 'Loai', lấy tất cả\n  const date = row['Thoi Gian'] || row['ThoiGian'] || \"N/A\"; // Chú ý cột có dấu cách\n  const content = row['Noi Dung'] || row['Noi_Dung'] || \"Thu nhập\";\n  \n  const rawMoney = row['So Tien'] || row['SoTien'] || 0;\n  const money = parseInt(rawMoney.toString().replace(/\\D/g, '')) || 0;\n\n  if (money === 0) continue;\n\n  totalIncome += money;\n  count++;\n\n  const moneyStr = new Intl.NumberFormat('vi-VN').format(money);\n\n  listText += `- *${date}*: ${content} 🤑 **+${moneyStr} đ**\\n`;\n}\n\nlet finalText = `💎 **LÚA VỀ LÀNG (THU NHẬP)**\\n`;\nfinalText += `--------------------------------\\n`;\n\nif (count === 0) {\n    finalText += \"🍂 Đói kém quá, chưa thấy đồng nào về...\";\n} else {\n    finalText += listText;\n    finalText += `\\n💰 **TỔNG THU VỀ: ${new Intl.NumberFormat('vi-VN').format(totalIncome)} đ**`;\n}\n\nreturn { json: { text: finalText } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        352
+      ],
+      "id": "a8c8620a-e21c-43e8-8081-63ad2ee31434",
+      "name": "Income"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1072,
+        128
+      ],
+      "id": "b839592e-ab4c-42c9-9faa-7b9bf8a1449e",
+      "name": "Merge1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Thu nhập",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Chi tiêu",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        []
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Thu nhập": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chi tiêu": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summary": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Google Sheets Chi Tieu": {
+      "main": [
+        [
+          {
+            "node": "Expense",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets Thu Nhap": {
+      "main": [
+        [
+          {
+            "node": "Income",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets Chi Tieu",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Sheets Chi Tieu1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Sheets Thu Nhap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets Chi Tieu1": {
+      "main": [
+        [
+          {
+            "node": "Debt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expense": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Debt": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Income": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "75b0ee84-fa72-49a5-a85d-66f633dc45ff",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7366abf5203455b418d6121c537c64b15122683ea6063af329d49439b8992267"
+  },
+  "id": "2h7H0k38MI8YnO4W",
+  "tags": []
+}
