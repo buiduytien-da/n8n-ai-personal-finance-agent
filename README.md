@@ -1,6 +1,6 @@
 **Tiếng Việt** | [English](./README.en.md)
 
-# Hệ thống quản lý tài chính cá nhân tự động qua AI Agent (n8n)
+# Hệ thống quản lý tài chính cá nhân tự động qua AI agent (n8n)
 
 Xây dựng trợ lý ảo tài chính hoạt động 24/7 giúp ghi chép thu chi, sổ nợ và tra cứu báo cáo số dư tức thì trực tiếp qua khung chat, thay thế hoàn toàn việc nhập liệu thủ công.
 
@@ -8,7 +8,7 @@ Xây dựng trợ lý ảo tài chính hoạt động 24/7 giúp ghi chép thu c
 
 ---
 
-### 1. Kiến trúc hệ thống (Workflow Architecture)
+### 1. Kiến trúc hệ thống
 ![n8n Finance Workflow](./assets/flow_architecture.png)
 
 * **Hạ tầng:** Tự triển khai `n8n` trên môi trường **Docker Localhost** để chủ động vận hành và tối ưu chi phí.
@@ -31,7 +31,7 @@ Xây dựng trợ lý ảo tài chính hoạt động 24/7 giúp ghi chép thu c
 
 ---
 
-### 3. Hướng dẫn chạy thử (Quick setup)
+### 3. Hướng dẫn chạy thử
 1. Cài đặt và khởi chạy `n8n` (khuyên dùng qua Docker).
 2. Tải file `finance_automation_flow.json` trong thư mục `workflow/` và import vào n8n.
 3. Cấu hình lại Credentials cho **OpenRouter API** và **Google Sheets OAuth2**, sau đó gắn ID file Google Sheets của bạn vào các node Google Sheets tương ứng.
