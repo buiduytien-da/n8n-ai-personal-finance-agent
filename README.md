@@ -2,7 +2,7 @@
 
 # Hệ thống quản lý tài chính cá nhân tự động qua AI agent (n8n)
 
-Xây dựng trợ lý ảo tài chính hoạt động 24/7 giúp ghi chép thu chi, sổ nợ và tra cứu báo cáo số dư tức thì trực tiếp qua khung chat, thay thế hoàn toàn việc nhập liệu thủ công.
+Xây dựng trợ lý ảo tài chính hoạt động 24/7 giúp ghi chép thu chi, sổ nợ và tra cứu báo cáo số dư tức thì trực tiếp qua khung chat, thay thế việc phải nhập tay thủ công.
 
 * **File Workflow n8n (import trực tiếp):** [Xem file JSON tại đây](./workflow/finance_automation_flow.json)
 
